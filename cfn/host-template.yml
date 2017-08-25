@@ -1,0 +1,110 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyName:
+    Description: EC2 KeyPair for SSH access to the Host instance
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: 'ssh-user'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair
+  S3BucketTemplate:
+    Description: Name of S3 Bucket holding any nested templates
+    Type: String
+    Default: 'remind-me-cfn-nested-templates'
+  Stage:
+    Description: Stage
+    Type: String
+    Default: "test"
+    AllowedPattern: "(test|prod)"
+    ConstraintDescription: set stage to `test` or `prod`
+Mappings:
+  RegionMap:
+    eu-west-1:
+      AMI: ami-10e43b63
+    eu-central-1:
+      AMI: ami-974457fb
+Resources:
+  Host:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: 'false'
+      ImageId:
+        Fn::FindInMap:
+        - RegionMap
+        - Ref: AWS::Region
+        - AMI
+      InstanceType: t2.nano
+      KeyName:
+        Ref: KeyName
+      Monitoring: 'true'
+      Tags:
+      - Key: Name
+        Value: test-host
+      UserData:
+        Fn::Base64: !Sub |
+          #!/usr/bin/env bash
+          cat > /home/ec2-user/.aws/credentials <<EOT
+          [default]
+          aws_access_key_id = ${HostUserKey}
+          aws_secret_access_key = ${HostUserKey.SecretAccessKey}
+          EOT
+          cat > /home/ec2-user/.aws/config <<EOT
+          [default]
+          region = ${AWS::Region}
+          output = text
+          EOT
+          chown ec2-user /home/ec2-user/.aws
+          chown ec2-user /home/ec2-user/.aws/credentials
+          chown ec2-user /home/ec2-user/.aws/config
+          . /etc/profile.d/aws-apitools-common.sh
+  HostUser:
+    Type: AWS::IAM::User
+    Properties:
+      Path: "/"
+      Policies:
+      - PolicyName: HostUserAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: elasticloadbalancing:DescribeInstanceHealth
+            Resource: "*"
+  HostUserKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      Serial: '0'
+      Status: Active
+      UserName:
+        Ref: HostUser
+    DependsOn: HostUser
+  AlertStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      Parameters:
+        "EC2InstanceId": !Ref "Host"
+        "Stage": !Ref "Stage"
+      TemplateURL:
+        Fn::Join:
+        - ''
+        - - "https://s3-"
+          - !Ref AWS::Region
+          - ".amazonaws.com/"
+          - !Ref "S3BucketTemplate"
+          - "/alert-template.yml"
+      TimeoutInMinutes: 8
+    DependsOn: Host
+Outputs:
+  HostDnsName:
+    Description: Host DNS name
+    Value:
+      Fn::GetAtt:
+      - Host
+      - PublicDnsName
+  HostID:
+    Description: Host instance ID
+    Value:
+      Ref: Host
+  KeyName:
+    Description: Key name for SSH access
+    Value:
+      Ref: KeyName
+Description: Basic host template for testing
