@@ -45,9 +45,11 @@ Parameters:
   SlackChannelTest:
     Description: Notification channel for test stage
     Type: String
+    Default: alert-template-test
   SlackChannelProd:
     Description: Notification channel for production
     Type: String
+    Default: alert-template-prod
   SlackHookUrl:
     Description: Predefined hook URL for test stage
     Type: String
@@ -85,9 +87,9 @@ Conditions:
 Mappings:
   SlackChannels:
     test:
-      channel: "domain011235"
+      channel: "alert-template"
     prod:
-      channel: "domain011235"
+      channel: ""
 Resources:
   Lambda:
     Type: AWS::Lambda::Function
