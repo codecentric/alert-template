@@ -1,0 +1,22 @@
+{
+  "AlarmName": "AlertCPUAlarm",
+  "AlarmDescription": "Raise alarm if...",
+  "NewStateValue": "ALARM",
+  "NewStateReason": "Threshold Crossed...",
+  "Region": "EU - Ireland",
+  "OldStateValue": "OK",
+  "Trigger": {
+    "MetricName": "CPUUtilization",
+    "Namespace": "AWS/EC2",
+    "Dimensions": [
+      {
+        "name": "AutoScalingGroupName",
+        "value": "frontend-auto-scaling-group"
+      }
+    ],
+    "Period": 60,
+    "EvaluationPeriods": 1,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "Threshold": 80.0
+  }
+}

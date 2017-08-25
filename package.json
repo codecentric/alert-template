@@ -1,0 +1,39 @@
+{
+  "name": "post-slack-alert",
+  "version": "0.1.0",
+  "description": "lambda for slack alerts",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "gerald1248@gmail.com",
+  "license": "MIT",
+  "devDependencies": {
+    "aws-sdk": "^2.95.0",
+    "aws-sdk-mock": "^1.7.0",
+    "chai": "^4.1.1",
+    "chai-string": "^1.4.0",
+    "del": "^3.0.0",
+    "dotenv": "^4.0.0",
+    "eslint": "^4.4.1",
+    "eslint-config-standard": "^10.2.1",
+    "eslint-plugin-import": "^2.7.0",
+    "eslint-plugin-mocha": "^4.11.0",
+    "eslint-plugin-node": "^5.1.1",
+    "eslint-plugin-promise": "^3.5.0",
+    "eslint-plugin-standard": "^3.0.1",
+    "getos": "^3.0.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-zip": "^4.0.0",
+    "mocha": "^3.5.0",
+    "run-sequence": "^2.1.0",
+    "yargs": "^8.0.2"
+  },
+  "dependencies": {
+    "gulp": "^3.9.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@github.com:gerald1248/alert-template.git"
+  }
+}

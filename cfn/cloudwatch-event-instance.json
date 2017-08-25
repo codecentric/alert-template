@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:eu-west-1:759152324809:nested-stack-02-AlertStack-1BLE5JUH1T1JT-Topic-G7LML5DW5PP4:1cb3e157-8cd0-4adf-94c3-9ff4cd8d8ef3",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "bc94496d-f875-5cbc-9c79-1b7a3a7954df",
+        "TopicArn": "arn:aws:sns:eu-west-1:759152324809:nested-stack-02-AlertStack-1BLE5JUH1T1JT-Topic-G7LML5DW5PP4",
+        "Subject": "ALARM: \"EC2 instance CPU utilization\" in EU - Ireland",
+        "Message": "{\"AlarmName\":\"EC2 instance CPU utilization\",\"AlarmDescription\":\"Raise alarm if CPU > 80% for 60s\",\"AWSAccountId\":\"759152324809\",\"NewStateValue\":\"ALARM\",\"NewStateReason\":\"Threshold Crossed: 1 datapoint [0.0 (23/08/17 17:46:00)] was less than the threshold (80.0).\",\"StateChangeTime\":\"2017-08-23T17:47:56.428+0000\",\"Region\":\"EU - Ireland\",\"OldStateValue\":\"OK\",\"Trigger\":{\"MetricName\":\"CPUUtilization\",\"Namespace\":\"AWS/EC2\",\"StatisticType\":\"Statistic\",\"Statistic\":\"AVERAGE\",\"Unit\":null,\"Dimensions\":[{\"name\":\"InstanceId\",\"value\":\"i-0bf266742c7eae31c\"}],\"Period\":60,\"EvaluationPeriods\":1,\"ComparisonOperator\":\"LessThanThreshold\",\"Threshold\":80.0,\"TreatMissingData\":\"\",\"EvaluateLowSampleCountPercentile\":\"\"}}",
+        "Timestamp": "2017-08-23T17:47:56.466Z",
+        "SignatureVersion": "1",
+        "Signature": "cGYUgPSywURE+yw2Yl9Hg/7+LfXRFWoTtRZrQ6L9yl0XiH/drKZ3hsXCWWHetdY2W12lAC+69+xCMgctjuQ1VmNkwgWSR1qBkW6ko4b6PHLXv5/T3Md422m7/IB1A7jOknVTvUQtYkEG1LHx2GLpWJ8s6gCN4rQxycxYO14XR7jF28ktSI46d+nuzCRrqP/Fo2wzQUTyndo6GfMTl/0lxxDLezdEUWvzuJWQy6c79zbxOuOpA/rBOnWhJsQ945niFkfyBsJ3OKHfEWxhLI4mEVhvgBiOW4RELMi3Hrbtju6vg+AbVUiNpNP/FDq2fSMRGlhmybhf1NZVgZzRhFUp/g==",
+        "SigningCertUrl": "https://sns.eu-west-1.amazonaws.com/SimpleNotificationService-433026a4050d206028891664da859041.pem",
+        "UnsubscribeUrl": "https://sns.eu-west-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:eu-west-1:759152324809:nested-stack-02-AlertStack-1BLE5JUH1T1JT-Topic-G7LML5DW5PP4:1cb3e157-8cd0-4adf-94c3-9ff4cd8d8ef3",
+        "MessageAttributes": {}
+      }
+    }
+  ]
+}

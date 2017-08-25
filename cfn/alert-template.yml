@@ -1,0 +1,294 @@
+---
+# The alert template is intended as a nested template.
+# Assuming you want to add an alert for an EC2 instance and given
+# resource ${Host} and params ${Stage}, ${Bucket} and ${Key},
+# you incorporate it in the parent template as follows:
+#
+# Resources:
+#   AlertStack:
+#     Type: "AWS::CloudFormation::Stack"
+#     Properties:
+#       Parameters:
+#         "EC2InstanceId": !Ref "Host"
+#         "Stage": !Ref "Stage"
+#       TemplateURL:
+#         !Sub "https://s3-${AWS::Region}.amazonaws.com/${Bucket}/${Key}"
+#       TimeoutInMinutes: 10
+#     DependsOn: Host
+#
+# Note that most fields have workable defaults
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  # optional params - omit any that don't apply
+  EC2InstanceId:
+    Description: ID of the monitored host 
+    Type: String
+    Default: ""
+  ECSClusterName:
+    Description: ECS cluster name
+    Type: String
+    Default: ""
+  ECSServiceName:
+    Description: ECS service name
+    Type: String
+    Default: ""
+  ASGroupName:
+    Description: Auto scaling group name
+    Type: String
+    Default: ""
+  # Slack integration: stage, channels and URLs
+  Stage:
+    Description: Stage descriptor
+    Type: String
+    Default: "test" 
+    AllowedPattern: "(test|prod)"
+  SlackChannelTest:
+    Description: Notification channel for test stage
+    Type: String
+  SlackChannelProd:
+    Description: Notification channel for production
+    Type: String
+  SlackHookUrl:
+    Description: Predefined hook URL for test stage
+    Type: String
+  S3BucketLambda:
+    Description: Name of S3 Bucket holding Lambda *.zips
+    Type: String
+    Default: "alert-template"
+  S3KeyLambda:
+    Description: Lambda key
+    Type: String
+    Default: "post-slack-alert-0.1.0.zip"
+  # shared alarm configuration
+  AlarmPeriod:
+    Description: Data evaluation period in seconds
+    Type: Number
+    Default: 60
+  AlarmEvaluationPeriods:
+    Description: Group size of data evaluation periods
+    Type: Number
+    Default: 1
+  AlarmThreshold:
+    Description: Limit in percent above which alarms are raised
+    Type: Number
+    Default: 80
+Conditions:
+  # only create defined resources
+  EC2InstanceIdDefined:
+    !Not [!Equals [!Ref EC2InstanceId, '']]
+  ECSClusterDefined:
+    !Not [!Equals [!Ref ECSClusterName, '']]
+  ECSServiceDefined:
+    !Not [!Or [!Equals [!Ref ECSServiceName, ''], !Equals [!Ref ECSClusterName, '']]]
+  ASGroupDefined:
+    !Not [!Equals [!Ref ASGroupName, '']]
+Mappings:
+  SlackChannels:
+    test:
+      channel: "domain011235"
+    prod:
+      channel: "domain011235"
+Resources:
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: passes subject and message pairs to a predefined Slack channel
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref "S3BucketLambda"
+        S3Key: !Ref "S3KeyLambda"
+      Runtime: nodejs4.3
+      Environment:
+        Variables:
+          # override dryRun default for unit testing (e.g. using dotenv)
+          dryRun: false
+          slackChannel: !FindInMap [SlackChannels, !Ref "Stage", "channel"]
+          hookUrl: !FindInMap [SlackHookUrls, !Ref "Stage", "url"]
+  Topic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      DisplayName: "Alert"
+      Subscription:
+        -
+          Endpoint:
+            !GetAtt "Lambda.Arn"
+          Protocol: "lambda"
+    DependsOn:
+    - Lambda
+  PermissionLambdaInvocation:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        !GetAtt "Lambda.Arn"
+      Action: "lambda:InvokeFunction"
+      Principal: "sns.amazonaws.com"
+      SourceArn:
+        !Ref "Topic" 
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+      - PolicyName: s3-read-only
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+              !Sub "arn:aws:s3:::${S3BucketLambda}/*"
+  # Standalone VMs (e.g. bastion hosts, single-instance DBs, etc.)
+  InstanceCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: EC2InstanceIdDefined
+    Properties:
+      AlarmName: EC2 instance CPU utilization
+      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "InstanceId"
+        Value:
+          !Ref EC2InstanceId
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
+  # ECS alarms: 2x CPU, 2x memory; supply both cluster and service for services
+  ECSClusterCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: ECSClusterDefined
+    Properties:
+      AlarmName: ECS cluster CPU utilization
+      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "ClusterName"
+        Value:
+          !Ref "ECSClusterName"
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
+  ECSClusterMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: ECSClusterDefined
+    Properties:
+      AlarmName: ECS cluster CPU utilization
+      AlarmDescription: !Sub "Raise alarm if memory utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: MemoryUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "ClusterName"
+        Value:
+          !Ref "ECSClusterName"
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
+  ECSServiceCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: ECSServiceDefined
+    Properties:
+      AlarmName: ECS cluster CPU utilization
+      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "ClusterName"
+        Value:
+          !Ref "ECSClusterName"
+      - Name: "ServiceName"
+        Value:
+          !Ref "ECSServiceName"
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
+  ECSServiceMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: ECSServiceDefined
+    Properties:
+      AlarmName: ECS service memory utilization
+      AlarmDescription: !Sub "Raise alarm if memory utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: MemoryUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "ClusterName"
+        Value:
+          !Ref "ECSClusterName"
+      - Name: "ServiceName"
+        Value:
+          !Ref "ECSServiceName"
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
+  # auto scaling groups (e.g. ECS application nodes)
+  ASGroupCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: ECSClusterDefined
+    Properties:
+      AlarmName: CPU utilization
+      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "AutoScalingGroupName"
+        Value:
+          !Ref ASGroupName
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
+Description: Generic alert template
