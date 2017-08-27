@@ -11,11 +11,13 @@ const https = require("https");
 // The Slack channel to send a message to stored in the slackChannel environment variable
 const slackChannel = process.env.slackChannel;
 // Slack hook URL
-const hookUrl = process.env.hookUrl;
+const base64HookUrl = process.env.base64HookUrl;
 // Dry run switch for testing
 const dryRun = process.env.dryRun.match(/true|yes|1/i);
 
 function postMessage(message, callback) {
+    // Buffer c'tor is deprecated, but the default runtime is Node.js 4.3
+    var hookUrl = new Buffer(base64HookUrl, "base64").toString("ascii");
     const body = JSON.stringify(message);
     const options = url.parse(hookUrl);
     options.method = "POST";
@@ -119,7 +121,7 @@ function buildAlarmDescription(obj) {
 
 
 exports.handler = (event, context, callback) => {
-    if (hookUrl) {
+    if (base64HookUrl) {
         // Container reuse, simply process the event with the key in memory
         processEvent(event, callback);
     } else {

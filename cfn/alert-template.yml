@@ -1,5 +1,5 @@
 ---
-# The alert template is intended as a nested template.
+# The alert template is intended to be used as a nested template.
 # Assuming you want to add an alert for an EC2 instance and given
 # resource ${Host} and params ${Stage}, ${Bucket} and ${Key},
 # you incorporate it in the parent template as follows:
@@ -42,22 +42,18 @@ Parameters:
     Type: String
     Default: "test" 
     AllowedPattern: "(test|prod)"
-  SlackChannelTest:
-    Description: Notification channel for test stage
+  SlackChannel:
+    Description: Notification channel (omitting "-(test|prod)")
     Type: String
-    Default: alert-template-test
-  SlackChannelProd:
-    Description: Notification channel for production
+    Default: alert-template
+  SlackHookUrlBase64:
+    Description: Predefined hook URL for test stage (base64-encoded)
     Type: String
-    Default: alert-template-prod
-  SlackHookUrl:
-    Description: Predefined hook URL for test stage
-    Type: String
-  S3BucketLambda:
-    Description: Name of S3 Bucket holding Lambda *.zips
+  S3Bucket:
+    Description: Name of S3 Bucket holding alert template and lambda
     Type: String
     Default: "alert-template"
-  S3KeyLambda:
+  S3Key:
     Description: Lambda key
     Type: String
     Default: "post-slack-alert-0.1.0.zip"
@@ -84,12 +80,6 @@ Conditions:
     !Not [!Or [!Equals [!Ref ECSServiceName, ''], !Equals [!Ref ECSClusterName, '']]]
   ASGroupDefined:
     !Not [!Equals [!Ref ASGroupName, '']]
-Mappings:
-  SlackChannels:
-    test:
-      channel: "alert-template"
-    prod:
-      channel: ""
 Resources:
   Lambda:
     Type: AWS::Lambda::Function
@@ -98,15 +88,15 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
-        S3Bucket: !Ref "S3BucketLambda"
-        S3Key: !Ref "S3KeyLambda"
+        S3Bucket: !Ref "S3Bucket"
+        S3Key: !Ref "S3Key"
       Runtime: nodejs4.3
       Environment:
         Variables:
           # override dryRun default for unit testing (e.g. using dotenv)
           dryRun: false
-          slackChannel: !FindInMap [SlackChannels, !Ref "Stage", "channel"]
-          hookUrl: !FindInMap [SlackHookUrls, !Ref "Stage", "url"]
+          slackChannel: !Sub "${SlackChannel}-${Stage}"
+          base64HookUrl: !Ref "SlackHookUrlBase64"
   Topic:
     Type: "AWS::SNS::Topic"
     Properties:
@@ -157,7 +147,7 @@ Resources:
             Action:
             - s3:GetObject
             Resource:
-              !Sub "arn:aws:s3:::${S3BucketLambda}/*"
+              !Sub "arn:aws:s3:::${S3Bucket}/*"
   # Standalone VMs (e.g. bastion hosts, single-instance DBs, etc.)
   InstanceCPUAlarm:
     Type: AWS::CloudWatch::Alarm
