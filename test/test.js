@@ -85,7 +85,6 @@ describe("PostAlert", function() {
     //undefined error
     describe("Unexpected event", function() {
         it("should produce warning object", function() {
-            var subject = "Error";
             var event = { "this_event_is": "unexpected" };
             handler.handler(event, null, function(err, data) {
                 assert.hasAllKeys(data.slackMessage, ["channel", "text", "username", "icon_emoji"]);
