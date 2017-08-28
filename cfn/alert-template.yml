@@ -81,42 +81,6 @@ Conditions:
   ASGroupDefined:
     !Not [!Equals [!Ref ASGroupName, '']]
 Resources:
-  Lambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      Description: passes subject and message pairs to a predefined Slack channel
-      Handler: index.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Code:
-        S3Bucket: !Ref "S3Bucket"
-        S3Key: !Ref "S3Key"
-      Runtime: nodejs4.3
-      Environment:
-        Variables:
-          # override dryRun default for unit testing (e.g. using dotenv)
-          dryRun: false
-          slackChannel: !Sub "${SlackChannel}-${Stage}"
-          base64HookUrl: !Ref "SlackHookUrlBase64"
-  Topic:
-    Type: "AWS::SNS::Topic"
-    Properties:
-      DisplayName: "Alert"
-      Subscription:
-        -
-          Endpoint:
-            !GetAtt "Lambda.Arn"
-          Protocol: "lambda"
-    DependsOn:
-    - Lambda
-  PermissionLambdaInvocation:
-    Type: "AWS::Lambda::Permission"
-    Properties:
-      FunctionName:
-        !GetAtt "Lambda.Arn"
-      Action: "lambda:InvokeFunction"
-      Principal: "sns.amazonaws.com"
-      SourceArn:
-        !Ref "Topic" 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -148,6 +112,40 @@ Resources:
             - s3:GetObject
             Resource:
               !Sub "arn:aws:s3:::${S3Bucket}/*"
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: passes subject and message pairs to a predefined Slack channel
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref "S3Bucket"
+        S3Key: !Ref "S3Key"
+      Runtime: nodejs4.3
+      Environment:
+        Variables:
+          # override dryRun default for unit testing (e.g. using dotenv)
+          dryRun: false
+          slackChannel: !Sub "${SlackChannel}-${Stage}"
+          base64HookUrl: !Ref "SlackHookUrlBase64"
+  Topic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      DisplayName: "Alert"
+      Subscription:
+        -
+          Endpoint:
+            !GetAtt "Lambda.Arn"
+          Protocol: "lambda"
+  PermissionLambdaInvocation:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        !GetAtt "Lambda.Arn"
+      Action: "lambda:InvokeFunction"
+      Principal: "sns.amazonaws.com"
+      SourceArn:
+        !Ref "Topic"
   # Standalone VMs (e.g. bastion hosts, single-instance DBs, etc.)
   InstanceCPUAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -264,7 +262,7 @@ Resources:
   # auto scaling groups (e.g. ECS application nodes)
   ASGroupCPUAlarm:
     Type: AWS::CloudWatch::Alarm
-    Condition: ECSClusterDefined
+    Condition: ASGroupDefined
     Properties:
       AlarmName: CPU utilization
       AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
