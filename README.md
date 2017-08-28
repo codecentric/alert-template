@@ -61,7 +61,7 @@ Resources:
     Properties:
       Parameters:
         "Stage": !Ref "Stage"
-        "EC2InstanceId": !Ref "logical name of Ec2 instance..."
+        "EC2InstanceId": !Ref "logical name of EC2 instance..."
         "S3Bucket": !Ref "S3Bucket"
         "S3Key": !Ref "S3LambdaKey"
         "SlackHookUrlBase64": !Ref "AlertHookUrlBase64"
