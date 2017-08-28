@@ -16,16 +16,15 @@ The `build` task lints, validates and tests the inputs before syncing files to S
 ## Sample host template
 To create a basic monitored stack, instantiate `cfn/host-template.yml` in the CloudFormation web console or at the command line.
 ```
-$ aws cloudformation create-stack --stack-name alert-test-stack --template-body file://host-template.yml
-  --parameters
-    ParameterKey=AlertHookUrlBase64,ParameterValue=...
-    ParameterKey=KeyName,ParameterValue=...
-    ParameterKey=S3Bucket,ParameterValue=...
-    ParameterKey=S3LambdaKey,ParameterValue=post-slack-alert-0.1.0.zip
-    ParameterKey=S3TemplateKey,ParameterValue=alert-template.yml 
-    ParameterKey=Stage,ParameterValue=test
-  --capabilities
-    CAPABILITY_IAM
+$ aws cloudformation create-stack --stack-name alert-test-stack --template-body file://host-template.yml \
+--parameters \
+ParameterKey=AlertHookUrlBase64,ParameterValue=... \
+ParameterKey=KeyName,ParameterValue=... \
+ParameterKey=S3Bucket,ParameterValue=... \
+ParameterKey=S3LambdaKey,ParameterValue=post-slack-alert-0.1.0.zip \
+ParameterKey=S3TemplateKey,ParameterValue=alert-template.yml \
+ParameterKey=Stage,ParameterValue=test \
+--capabilities CAPABILITY_IAM
 ```
 `AlertHookUrlBase64` is the base64-encoded URL of the Slack webhook (including the leading `https://`). `KeyName` has to match an existing key pair (e.g. `ssh-user`). The parameter `S3Bucket` is the name of the bucket referenced in `.env` and used to sync templates and lambda to S3.
 
