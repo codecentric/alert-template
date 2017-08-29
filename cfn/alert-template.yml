@@ -36,9 +36,13 @@ Parameters:
     Description: Auto scaling group name
     Type: String
     Default: ""
+  # required param
+  Source:
+    Description: alarm source's name
+    Type: String
   # Slack integration: stage, channels and URLs
   Stage:
-    Description: Stage descriptor
+    Description: Stage name
     Type: String
     Default: "test" 
     AllowedPattern: "(test|prod)"
@@ -151,7 +155,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: EC2InstanceIdDefined
     Properties:
-      AlarmName: EC2 instance CPU utilization
+      AlarmName: !Sub "${Source} EC2 instance CPU utilization"
       AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
@@ -173,7 +177,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSClusterDefined
     Properties:
-      AlarmName: ECS cluster CPU utilization
+      AlarmName: !Sub "${Source} ECS cluster CPU utilization"
       AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
@@ -194,7 +198,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSClusterDefined
     Properties:
-      AlarmName: ECS cluster memory utilization
+      AlarmName: !Sub "${Source} ECS cluster memory utilization"
       AlarmDescription: !Sub "Raise alarm if memory utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: MemoryUtilization
       Namespace: AWS/EC2
@@ -215,7 +219,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSServiceDefined
     Properties:
-      AlarmName: ECS service CPU utilization
+      AlarmName: !Sub "${Source} ECS service CPU utilization"
       AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
@@ -239,7 +243,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSServiceDefined
     Properties:
-      AlarmName: ECS service memory utilization
+      AlarmName: !Sub "${Source} ECS service memory utilization"
       AlarmDescription: !Sub "Raise alarm if memory utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: MemoryUtilization
       Namespace: AWS/EC2
@@ -264,7 +268,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ASGroupDefined
     Properties:
-      AlarmName: Auto scaling CPU utilization
+      AlarmName: !Sub "${Source} auto scaling CPU utilization"
       AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
