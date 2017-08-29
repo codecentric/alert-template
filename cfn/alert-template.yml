@@ -37,6 +37,10 @@ Parameters:
     Description: Auto scaling group name
     Type: String
     Default: ""
+  CWLogGroupName:
+    Description: CloudWatch log group name
+    Type: String
+    Default: ""
   # required param
   Source:
     Description: alarm source's name
@@ -85,6 +89,8 @@ Conditions:
     !Not [!Or [!Equals [!Ref ECSServiceName, ''], !Equals [!Ref ECSClusterName, '']]]
   ASGroupDefined:
     !Not [!Equals [!Ref ASGroupName, '']]
+  CWLogGroupDefined:
+    !Not [!Equals [!Ref CWLogGroupName, '']]
 Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -173,6 +179,36 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
     DependsOn:
     - Topic
+  # custom metrics
+  ErrorMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Condition: CWLogGroupDefined
+    Properties:
+      LogGroupName:
+        !Ref "CWLogGroupName"
+      FilterPattern: "ERROR"
+      MetricTransformations:
+      - MetricValue: '1'
+        MetricNamespace: !Sub "${Source}/error"
+        MetricName: count
+  # custom metric alarm
+  LogErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: CWLogGroupDefined
+    Properties:
+      AlarmName: !Sub "${Source} CloudWatch Logs alarm"
+      AlarmDescription: !Sub "An error has been raised in ${CWLogGroupName}"
+      MetricName: count
+      Namespace: !Sub "${Source}/error"
+      Statistic: Sum
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '1'
+      AlarmActions:
+      - !Ref "Topic"
+      ComparisonOperator: GreaterThanThreshold
+      DependsOn:
+      - Topic
   # ECS alarms: 2x CPU, 2x memory; supply both cluster and service for services
   ECSClusterCPUAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -265,6 +301,27 @@ Resources:
     DependsOn:
     - Topic
   # auto scaling groups (e.g. ECS application nodes)
+  ASGroupCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: ASGroupDefined
+    Properties:
+      AlarmName: !Sub "${Source} auto scaling CPU utilization"
+      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      AlarmActions:
+      - !Ref "Topic"
+      Period: !Ref "AlarmPeriod"
+      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
+      Threshold: !Ref "AlarmThreshold"
+      Dimensions:
+      - Name: "AutoScalingGroupName"
+        Value:
+          !Ref ASGroupName
+      ComparisonOperator: GreaterThanThreshold
+    DependsOn:
+    - Topic
   ASGroupCPUAlarm:
     Type: AWS::CloudWatch::Alarm
     Condition: ASGroupDefined
