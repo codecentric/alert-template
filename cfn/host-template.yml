@@ -91,6 +91,7 @@ Resources:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       Parameters:
+        "Source": !Ref "Host"
         "Stage": !Ref "Stage"
         "EC2InstanceId": !Ref "Host"
         "S3Bucket": !Ref "S3Bucket"
