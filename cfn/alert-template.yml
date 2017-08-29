@@ -9,6 +9,7 @@
 #     Type: "AWS::CloudFormation::Stack"
 #     Properties:
 #       Parameters:
+#         "Source": !Ref "Host"
 #         "EC2InstanceId": !Ref "Host"
 #         "Stage": !Ref "Stage"
 #       TemplateURL:
