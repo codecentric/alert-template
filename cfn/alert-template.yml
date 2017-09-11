@@ -190,7 +190,7 @@ Resources:
     Properties:
       LogGroupName:
         !Ref "CWLogGroupName"
-      FilterPattern: ${ErrorFilterPattern}
+      FilterPattern: !Ref "LogErrorFilter"
       MetricTransformations:
       - MetricValue: '1'
         MetricNamespace: !Sub "${Source}/error"
