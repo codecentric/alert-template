@@ -107,14 +107,15 @@ function buildAlarmDescription(obj) {
         "*Name*: " + obj.AlarmName + "\n" +
         "*Description*: " + obj.AlarmDescription + "\n" +
         "*Reason*: " + obj.NewStateReason + "\n" +
-        "*Metric*: " + obj.Trigger.MetricName + "\n" +
-        "*Dimensions*:\n";
-        
-    var dimensions = obj.Trigger.Dimensions;
-    for (var i = 0; i < dimensions.length; i++) {
-        s += "- " +
-            dimensions[i].name + " => " +
-            dimensions[i].value + "\n";
+        "*Metric*: " + obj.Trigger.MetricName + "\n";
+    if (obj.Trigger.Dimensions.length > 0) {
+        s += "*Dimensions*:\n";
+        var dimensions = obj.Trigger.Dimensions;
+        for (var i = 0; i < dimensions.length; i++) {
+            s += "- " +
+                dimensions[i].name + " => " +
+                dimensions[i].value + "\n";
+        }
     }
     return s;
 }
