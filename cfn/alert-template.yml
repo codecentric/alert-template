@@ -41,10 +41,14 @@ Parameters:
     Description: CloudWatch log group name
     Type: String
     Default: ""
-  # required param
+  # required params
   Source:
     Description: alarm source's name
     Type: String
+  LogErrorFilter:
+    Description: search term identifying errors in logs
+    Type: String
+    Default: "ERROR"
   # Slack integration: stage, channels and URLs
   Stage:
     Description: Stage name
@@ -162,8 +166,8 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: EC2InstanceIdDefined
     Properties:
-      AlarmName: !Sub "${Source} EC2 instance CPU utilization"
-      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      AlarmName: !Sub "EC2 instance CPU utilization (${Source})"
+      AlarmDescription: !Sub "Raise alarm if CPU utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
@@ -186,7 +190,7 @@ Resources:
     Properties:
       LogGroupName:
         !Ref "CWLogGroupName"
-      FilterPattern: "ERROR"
+      FilterPattern: ${ErrorFilterPattern}
       MetricTransformations:
       - MetricValue: '1'
         MetricNamespace: !Sub "${Source}/error"
@@ -196,7 +200,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: CWLogGroupDefined
     Properties:
-      AlarmName: !Sub "${Source} CloudWatch Logs alarm"
+      AlarmName: !Sub "'${LogErrorFilter}' in CloudWatch Logs (${Source})"
       AlarmDescription: !Sub "An error has been raised in ${CWLogGroupName}"
       MetricName: count
       Namespace: !Sub "${Source}/error"
@@ -214,8 +218,8 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSClusterDefined
     Properties:
-      AlarmName: !Sub "${Source} ECS cluster CPU utilization"
-      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      AlarmName: !Sub "ECS cluster CPU utilization (${Source})"
+      AlarmDescription: !Sub "Raise alarm if CPU utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
@@ -235,7 +239,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSClusterDefined
     Properties:
-      AlarmName: !Sub "${Source} ECS cluster memory utilization"
+      AlarmName: !Sub "ECS cluster memory utilization (${Source})"
       AlarmDescription: !Sub "Raise alarm if memory utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: MemoryUtilization
       Namespace: AWS/EC2
@@ -256,8 +260,8 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSServiceDefined
     Properties:
-      AlarmName: !Sub "${Source} ECS service CPU utilization"
-      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      AlarmName: !Sub "ECS service CPU utilization (${Source})"
+      AlarmDescription: !Sub "Raise alarm if CPU utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
@@ -280,7 +284,7 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ECSServiceDefined
     Properties:
-      AlarmName: !Sub "${Source} ECS service memory utilization"
+      AlarmName: !Sub "ECS service memory utilization (${Source})"
       AlarmDescription: !Sub "Raise alarm if memory utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: MemoryUtilization
       Namespace: AWS/EC2
@@ -305,8 +309,8 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Condition: ASGroupDefined
     Properties:
-      AlarmName: !Sub "${Source} auto scaling CPU utilization"
-      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
+      AlarmName: !Sub "Auto scaling CPU utilization (${Source})"
+      AlarmDescription: !Sub "Raise alarm if CPU utilization > ${AlarmThreshold}% for ${AlarmPeriod}s"
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
@@ -322,35 +326,14 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
     DependsOn:
     - Topic
-  ASGroupCPUAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Condition: ASGroupDefined
-    Properties:
-      AlarmName: !Sub "${Source} auto scaling CPU utilization"
-      AlarmDescription: !Sub "Raise alarm if CPU > ${AlarmThreshold}% for ${AlarmPeriod}s"
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Statistic: Average
-      AlarmActions:
-      - !Ref "Topic"
-      Period: !Ref "AlarmPeriod"
-      EvaluationPeriods: !Ref "AlarmEvaluationPeriods"
-      Threshold: !Ref "AlarmThreshold"
-      Dimensions:
-      - Name: "AutoScalingGroupName"
-        Value:
-          !Ref ASGroupName
-      ComparisonOperator: GreaterThanThreshold
-    DependsOn:
-    - Topic
-Description: Generic alert 
+Description: Generic alert template
 # echo inputs
 Outputs:
   Stage:
     Description: Stage descriptor
     Value: !Ref "Stage"
   SlackChannel:
-    Description: Notification channel
+    Description: Notification channel without stage identifier
     Value: !Ref "SlackChannel"
   SlackHookUrlBase64:
     Description: Predefined hook URL for test stage (base64-encoded)
