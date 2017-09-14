@@ -62,10 +62,8 @@ function processEvent(event, callback) {
         // fallback: we don't know the structure, only that an alarm has been raised
         // only the event itself is passed on (as it is for the others)
         subjectText = "*CloudWatch Alarm*";
+        messageText = "*Event*: ```" + JSON.stringify(event) + "```";
     }
-
-    //common to all event types
-    messageText += "*Event*: ```" + JSON.stringify(event) + "```";
     
     var em = ":information_source:";
     if (subjectText.match(/warning|alarm/i)) {

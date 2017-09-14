@@ -51,7 +51,6 @@ describe("PostAlert", function() {
             handler.handler(event, null, function(err, data) {
                 assert.hasAllKeys(data.slackMessage, ["channel", "text", "username", "icon_emoji"]);
                 assert.startsWith(data.slackMessage.icon_emoji, ":information_source:");
-                assert.endsWith(data.slackMessage.text, "}```");
             });
         });
     });
@@ -64,7 +63,6 @@ describe("PostAlert", function() {
             handler.handler(event, null, function(err, data) {
                 assert.hasAllKeys(data.slackMessage, ["channel", "text", "username", "icon_emoji"]);
                 assert.startsWith(data.slackMessage.icon_emoji, ":warning:");
-                assert.endsWith(data.slackMessage.text, "}```");
             });
         });
     });
@@ -77,7 +75,6 @@ describe("PostAlert", function() {
             handler.handler(event, null, function(err, data) {
                 assert.hasAllKeys(data.slackMessage, ["channel", "text", "username", "icon_emoji"]);
                 assert.startsWith(data.slackMessage.icon_emoji, ":fire:");
-                assert.endsWith(data.slackMessage.text, "}```");
             });
         });
     });
