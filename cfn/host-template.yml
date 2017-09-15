@@ -23,10 +23,14 @@ Parameters:
   S3LambdaKey:
     Description: Lambda key
     Type: String
-    Default: post-slack-alert-0.1.0.zip
+    Default: post-slack-alert-0.1.1.zip
   AlertHookUrlBase64:
     Description: Base64-encoded Slack hook URL
     Type: String
+  AlertChannel:
+    Description: Slack channel
+    Type: String
+    Default: alert-template
 Mappings:
   RegionMap:
     eu-west-1:
@@ -97,6 +101,7 @@ Resources:
         "S3Bucket": !Ref "S3Bucket"
         "S3Key": !Ref "S3LambdaKey"
         "SlackHookUrlBase64": !Ref "AlertHookUrlBase64"
+        "SlackChannel": !Ref "AlertChannnel"
       TemplateURL: !Sub "https://s3-${AWS::Region}.amazonaws.com/${S3Bucket}/${S3TemplateKey}"
       TimeoutInMinutes: 8
     DependsOn: Host
