@@ -86,8 +86,10 @@ Conditions:
   # only create defined resources
   EC2InstanceIdDefined:
     !Not [!Equals [!Ref EC2InstanceId, '']]
+  # only set up cluster alert if no service ID given
   ECSClusterDefined:
-    !Not [!Equals [!Ref ECSClusterName, '']]
+    !And [!Not [!Equals [!Ref ECSClusterName, '']], !Equals [!Ref ECSServiceName, '']]
+  # only set up service alert if cluster and service IDs given
   ECSServiceDefined:
     !Not [!Or [!Equals [!Ref ECSServiceName, ''], !Equals [!Ref ECSClusterName, '']]]
   ASGroupDefined:
