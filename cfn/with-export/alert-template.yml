@@ -1,0 +1,97 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  # required param
+  SlackHookUrlBase64:
+    Description: Predefined hook URL (base64-encoded)
+    Type: String
+    NoEcho: true
+  # optional params
+  SlackChannel:
+    Description: Notification channel
+    Type: String
+    Default: alert-template
+  S3Bucket:
+    Description: Name of S3 Bucket holding alert template and lambda
+    Type: String
+    Default: "alert-template"
+  S3Key:
+    Description: Lambda key
+    Type: String
+    Default: "post-slack-alert-0.1.1.zip"
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+      - PolicyName: s3-read-only
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            Resource:
+              !Sub "arn:aws:s3:::${S3Bucket}/*"
+  # Lambda
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: alert function
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref "S3Bucket"
+        S3Key: !Ref "S3Key"
+      Runtime: nodejs6.10
+      Environment:
+        Variables:
+          # override dryRun default for unit testing (e.g. using dotenv)
+          dryRun: false
+          slackChannel: !Ref "SlackChannel"
+          base64HookUrl: !Ref "SlackHookUrlBase64"
+  # SNS
+  Topic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      DisplayName: "Alert"
+      Subscription:
+        -
+          Endpoint:
+            !GetAtt "Lambda.Arn"
+          Protocol: "lambda"
+  PermissionLambdaInvocation:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName:
+        !GetAtt "Lambda.Arn"
+      Action: "lambda:InvokeFunction"
+      Principal: "sns.amazonaws.com"
+      SourceArn:
+        !Ref "Topic"
+Description: Generic alert template
+# export outputs
+Outputs:
+  Topic:
+    Description: alert topic
+    Value: !Ref "Topic"
+    Export:
+      Name: "${AWS::StackName}-topic"
