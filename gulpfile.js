@@ -32,7 +32,7 @@ gulp.task("sync", function(callback) {
 });
 
 gulp.task("cfn-dist", function() {
-    return gulp.src(["cfn//*.yml", "cfn/nested/*.json"], { base: "cfn/nested" })
+    return gulp.src(["cfn/*.yml", "cfn/*.json"], { base: "cfn" })
         .pipe(gulp.dest("./dist"));
 });
 
@@ -57,7 +57,7 @@ gulp.task("test", function(callback) {
 });
 
 gulp.task("validate", function(callback) {
-    exec("aws cloudformation validate-template --template-body file://cfn/nested/alert-template.yml && aws cloudformation validate-template --template-body file://cfn/nested/host-template.yml", function(err, stdout, stderr) {
+    exec("aws cloudformation validate-template --template-body file://cfn/alert-template.yml && aws cloudformation validate-template --template-body file://cfn/host-template.yml", function(err, stdout, stderr) {
         console.log(stdout);
         console.log(stderr);
         callback(err);
